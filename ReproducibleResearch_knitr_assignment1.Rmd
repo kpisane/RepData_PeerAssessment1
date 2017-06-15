@@ -1,0 +1,12 @@
+---
+title: "Reproducible Research knitr assignment"
+author: "KellyPisane"
+date: "June 15, 2017"
+output: html_document
+---
+
+First, unzip and read in the data. 
+```{r readdata}
+unzip("activity.zip")
+activity <- read.csv("activity.csv")
+```
