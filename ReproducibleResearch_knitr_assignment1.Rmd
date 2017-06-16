@@ -10,26 +10,57 @@ First, unzip and read in the data and look at the head of the data frame.
 ```{r readdata}
 unzip("activity.zip")
 activity <- read.csv("activity.csv")
-head(activity)
 ```
 
-## Question: What is the mean total number of steps taken per day?
+## Question: What is the mean total number of steps taken per day?  
 
-Calculate the total number of steps taken per day
+###Calculate the total number of steps taken per day  
 ```{r dailysteps}
 dailyTotals <- as.data.frame(tapply(activity$steps, activity$date, sum, na.rm = TRUE))
 colnames(dailyTotals) <- c("totalSteps")
 head(dailyTotals)
 ```
 
-Make a histogram of the total number of steps taken each day
+###Histogram of the total number of steps taken each day  
 ```{r histogram}
 dates <- rownames(dailyTotals)
 rownames(dailyTotals) <- NULL
 dailyTotals <- cbind(dates, dailyTotals)
 colnames(dailyTotals) <- c("dates", "totalSteps")
 hist(dailyTotals$totalSteps, xlab = "Total Steps (daily)", ylab = "Frequency", main = "Daily Steps", col = "red")
+```
+
+###The mean and median of the total number of steps taken per day are:    
+```{r meanmedian}
+medianTotal <- median(dailyTotals$totalSteps)
+meanTotal <- mean(dailyTotals$totalSteps)
+```
+
+mean = `r meanTotal`  
+median = `r medianTotal`  
+
+##What is the average daily activity pattern?  
+
+```{r averageInterval}
+intervalMeans <- as.data.frame(tapply(activity$steps, activity$interval, mean, na.rm = TRUE))
+intervals <- as.numeric(rownames(intervalMeans))
+rownames(intervalMeans) <- NULL
+intervalMeans <- cbind(intervals, intervalMeans)
+colnames(intervalMeans) <- c("intervals", "meanSteps")
+head(intervalMeans)
+```
+
+### Plot the mean number of steps taken in each time interval across all days  
+
+```{r plotMeanSteps}
+with(intervalMeans, plot(intervals, meanSteps, type = "l", main = "Mean Steps per 5 Minute Interval", xlab = "Time (minutes)", ylab = "Mean Number of Steps"))
 
 ```
-Make a histogram of the total number of steps taken each day
-Calculate and report the mean and median of the total number of steps taken per day
+
+### Determine which interval has the highest mean number of steps
+
+```{r maxSteps}
+highest <- which(intervalMeans$meanSteps == max(intervalMeans$meanSteps))
+highest <- intervalMeans$intervals[highest]
+```
+The highest mean number of steps occurs at interval(s) of `r highest`.  
