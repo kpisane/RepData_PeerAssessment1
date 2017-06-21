@@ -1,25 +1,178 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research knitr assignment"
+author: "KellyPisane"
+date: "June 15, 2017"
+output: html_document
 ---
+```{r setup}
+options(scipen = 999)
+library(dplyr)
+```
+
+First, unzip and read in the data and look at the head of the data frame. 
+```{r readdata}
+unzip("activity.zip")
+activity <- read.csv("activity.csv")
+```
+
+## Question: What is the mean total number of steps taken per day?  
+
+###Calculate the total number of steps taken per day  
+```{r dailysteps}
+dailyTotals <- as.data.frame(tapply(activity$steps, activity$date, sum, na.rm = TRUE))
+colnames(dailyTotals) <- c("totalSteps")
+head(dailyTotals)
+```
+
+###Histogram of the total number of steps taken each day  
+```{r histogram}
+dates <- rownames(dailyTotals)
+rownames(dailyTotals) <- NULL
+dailyTotals <- cbind(dates, dailyTotals)
+colnames(dailyTotals) <- c("dates", "totalSteps")
+hist(dailyTotals$totalSteps, xlab = "Total Steps (daily)", ylab = "Frequency", main = "Daily Steps", col = "red")
+```
+
+###The mean and median of the total number of steps taken per day are:    
+```{r meanmedian}
+medianTotal <- median(dailyTotals$totalSteps)
+meanTotal <- mean(dailyTotals$totalSteps)
+```
+
+mean = `r meanTotal`  
+median = `r medianTotal`  
+
+##What is the average daily activity pattern?  
+
+```{r averageInterval}
+intervalMeans <- as.data.frame(tapply(activity$steps, activity$interval, mean, na.rm = TRUE))
+intervals <- as.numeric(rownames(intervalMeans))
+rownames(intervalMeans) <- NULL
+intervalMeans <- cbind(intervals, intervalMeans)
+colnames(intervalMeans) <- c("intervals", "meanSteps")
+head(intervalMeans)
+```
+
+### Plot the mean number of steps taken in each time interval across all days  
+
+```{r plotMeanSteps}
+with(intervalMeans, plot(intervals, meanSteps, type = "l", main = "Mean Steps per 5 Minute Interval", xlab = "Time (minutes)", ylab = "Mean Number of Steps"))
+
+```
+
+### Determine which interval has the highest mean number of steps
+
+```{r maxSteps}
+i <- which(intervalMeans$meanSteps == max(intervalMeans$meanSteps))
+highest <- intervalMeans$intervals[i]
+highValue <- intervalMeans$meanSteps[i]
+```
+The highest mean number of steps is `r highValue` and occurs at interval `r highest`.  
+
+## Inpute missing values  
+
+### Total number of missing values 
+
+```{r missingValues}
+NAs <- sum(is.na(activity$steps))
+```
+  
+There are `r NAs` NAs in the dataset.  
+
+To fill in the missing values, use the mean number of steps in that interval. 
+
+```{r fillIn}
+activity2 <- activity
+for(i in 1:17568){
+    if(is.na(activity2$steps[i])){
+        activity2$steps[i] <- intervalMeans$meanSteps[which(intervalMeans$intervals == activity2$interval[i])]
+    }
+}
+```
+  
+The dataset activity2 is the same as the original dataset but with the missing values filled in.  
+
+```{r show}
+head(activity2)
+```
+
+### Recalculate the daily total number of steps from the imputed data.  
+
+```{r dailysteps2}
+dailyTotals2 <- as.data.frame(tapply(activity2$steps, activity2$date, sum, na.rm = TRUE))
+colnames(dailyTotals2) <- c("totalSteps")
+head(dailyTotals2)
+```
+
+### Re-plot the histogram of the daily total number of steps including the imputed data.  
+
+```{r histogram2}
+dates <- rownames(dailyTotals2)
+rownames(dailyTotals2) <- NULL
+dailyTotals2 <- cbind(dates, dailyTotals2)
+colnames(dailyTotals2) <- c("dates", "totalSteps")
+hist(dailyTotals2$totalSteps, xlab = "Total Steps (daily)", ylab = "Frequency", main = "Daily Steps", col = "red")
+```
+
+###The mean and median of the total number of steps taken per day calculated from the imputed data are:    
+```{r meanmedian2}
+medianTotal2 <- median(dailyTotals2$totalSteps)
+meanTotal2 <- mean(dailyTotals2$totalSteps)
+```
+
+mean = `r meanTotal2`  
+median = `r medianTotal2`  
 
 
-## Loading and preprocessing the data
+###Effects of imputing data.  
 
-
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
+The mean total number of steps increases as does the median total number of steps.  
+The biggest difference can be seen in the shape of the two histograms. There are many more occurences that fall into the center of the distribution.  The reason for this is that every point that has been added to the dataset was an average value and so falls near the center of the distribution.  
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+First, it is necessary to create the factor with levels of "weekday" and "weekend".  Then add it onto the activity2 dataframe.
+
+```{r weeks}
+weeks <- weekdays(as.Date(activity2$date))
+wkends <- c("Saturday", "Sunday")
+days <- rep(0, length(weeks))
+for (i in 1:length(weeks)){
+    if (weeks[i] %in% wkends){
+        days[i] <- "Weekend"
+        } else {
+            days[i] <- "Weekday"
+        }
+}
+activity2 <- cbind(activity2, days = as.factor(days))
+```
+  
+Average each interval for weekdays and weekend days.  
+```{r aveInterval2}
+sa2 <- split(activity2, days)
+sa2.d <- as.data.frame(with(sa2[["Weekday"]], tapply(steps, interval, mean)))
+sa2.e <- as.data.frame(with(sa2[["Weekend"]], tapply(steps, interval, mean)))
+# add the weekend and weekday factor back onto the data frames
+sa2.d <- cbind(as.numeric(row.names(sa2.d)), sa2.d, as.factor(rep("weekday", length(sa2.d[,1]))))
+sa2.e <- cbind(as.numeric(row.names(sa2.e)), sa2.e, as.factor(rep("weekend", length(sa2.e[,1]))))
+# make the names of the variables match
+colnames(sa2.d) <- c("interval", "steps", "day")
+colnames(sa2.e) <- c("interval", "steps", "day")
+# combine the data frames to make a single data frame containing both the weekend and weekday averages
+intervalMeans2 <- rbind(sa2.d, sa2.e)
+```
+
+
+### Make a panel plot contaiing a time series plot of the 5-minute interval and the average number of steps taken, avereaged across all weekday days or weekend days.
+
+```{r plotweeks}
+library(ggplot2)
+g <- ggplot(intervalMeans2, aes(interval, steps, group = day)) +
+    geom_line() +
+    xlab("Time (minutes)") +
+    ggtitle("Mean Steps Taken per 5 Minute Interval")
+g + facet_grid(day ~ .)
+```
+
+  
+The mean number of steps increases earlier on weekdays than on weekends with the highest mean number of steps taking place before 1000 minutes.  On the weekends, the mean number of steps taken during the intervals between 1000 minutes and 2000 minutes are higher than the mean number of steps taken during those same times on weekdays.  
