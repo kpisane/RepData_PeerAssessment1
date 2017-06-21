@@ -4,8 +4,9 @@ author: "KellyPisane"
 date: "June 15, 2017"
 output: html_document
 ---
-```{r options}
+```{r setup}
 options(scipen = 999)
+library(dplyr)
 ```
 
 First, unzip and read in the data and look at the head of the data frame. 
@@ -148,13 +149,12 @@ activity2 <- cbind(activity2, days = as.factor(days))
   
 Average each interval for weekdays and weekend days.  
 ```{r aveInterval2}
-library(dplyr)
 sa2 <- split(activity2, days)
 sa2.d <- as.data.frame(with(sa2[["Weekday"]], tapply(steps, interval, mean)))
 sa2.e <- as.data.frame(with(sa2[["Weekend"]], tapply(steps, interval, mean)))
 # add the weekend and weekday factor back onto the data frames
-sa2.d <- cbind(row.names(sa2.d), sa2.d, as.factor(rep("weekday", length(sa2.d[,1]))))
-sa2.e <- cbind(row.names(sa2.e), sa2.e, as.factor(rep("weekend", length(sa2.e[,1]))))
+sa2.d <- cbind(as.numeric(row.names(sa2.d)), sa2.d, as.factor(rep("weekday", length(sa2.d[,1]))))
+sa2.e <- cbind(as.numeric(row.names(sa2.e)), sa2.e, as.factor(rep("weekend", length(sa2.e[,1]))))
 # make the names of the variables match
 colnames(sa2.d) <- c("interval", "steps", "day")
 colnames(sa2.e) <- c("interval", "steps", "day")
@@ -168,9 +168,11 @@ intervalMeans2 <- rbind(sa2.d, sa2.e)
 ```{r plotweeks}
 library(ggplot2)
 g <- ggplot(intervalMeans2, aes(interval, steps, group = day)) +
-    geom_point(size = 1, pch = 20) + geom_line()
+    geom_line() +
+    xlab("Time (minutes)") +
+    ggtitle("Mean Steps Taken per 5 Minute Interval")
 g + facet_grid(day ~ .)
 ```
 
   
-The 
+The mean number of steps increases earlier on weekdays than on weekends with the highest mean number of steps taking place before 1000 minutes.  On the weekends, the mean number of steps taken during the intervals between 1000 minutes and 2000 minutes are higher than the mean number of steps taken during those same times on weekdays.  
